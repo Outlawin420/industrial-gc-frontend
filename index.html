@@ -34,7 +34,7 @@
         data = JSON.parse(text);
       } catch (e) {
         status.innerText = "DONE ✅ (but response was not JSON)";
-        output.innerText = text;
+        output.innerText = <div id="output" style="background:#f2f2f2; padding:12px;"></div>
         return;
       }
 
