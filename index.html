@@ -1,74 +1,90 @@
-<script>
-  const BACKEND_URL = "https://YOUR-RENDER-SERVICE.onrender.com/run-intelligence";
-  // Example: "https://industrial-gc-intelligence.onrender.com/run-intelligence"
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Industrial GC Intelligence Portal</title>
+</head>
 
-  async function runEngine() {
-    const status = document.getElementById("status");
-    const output = document.getElementById("output");
+<body style="font-family: Arial; padding: 20px;">
+  <h1>Industrial GC Intelligence Portal</h1>
+  <h3 style="color: green;">CLEAN BUILD</h3>
 
-    status.innerText = "Generating report...";
-    output.innerHTML = "";
+  <button onclick="runEngine()" style="padding:12px 16px; font-size:16px;">
+    Run Intelligence Engine
+  </button>
 
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: "RUN_MOCK" 
-          // If your backend expects the full master prompt, replace RUN_MOCK with that string
-        })
-      });
+  <p id="status"></p>
+  <div id="output" style="background:#f2f2f2; padding:12px; white-space:pre-wrap;"></div>
 
-      const text = await res.text();
+  <script>
+    // ✅ STEP 1: Replace this with your real Render URL (must end with /run-intelligence)
+    const BACKEND_URL = "https://YOUR-RENDER-SERVICE.onrender.com/run-intelligence";
 
-      // If backend returned non-JSON (like an error page), show it
-      if (!res.ok) {
-        status.innerText = `DONE ✅ HTTP ${res.status}`;
-        output.innerText = text;
-        return;
-      }
+    async function runEngine() {
+      const statusEl = document.getElementById("status");
+      const outputEl = document.getElementById("output");
 
-      // Parse JSON safely
-      let data;
+      statusEl.innerText = "Generating report...";
+      outputEl.innerHTML = "";
+
       try {
-        data = JSON.parse(text);
-      } catch (e) {
-        status.innerText = "DONE ✅ (but response was not JSON)";
-        output.innerText = <div id="output" style="background:#f2f2f2; padding:12px;"></div>
-        return;
+        const res = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: "RUN_MOCK" }) // keep this for now
+        });
+
+        const text = await res.text();
+
+        if (!res.ok) {
+          statusEl.innerText = `DONE ✅ HTTP ${res.status}`;
+          outputEl.innerText = text;
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          statusEl.innerText = "DONE ✅ (but response was not JSON)";
+          outputEl.innerText = text;
+          return;
+        }
+
+        // Render clean list style output
+        let html = `<h2>DAILY OPPORTUNITY REPORT — ${data.date || ""}</h2>`;
+
+        (data.opportunities || []).forEach((item, index) => {
+          html += `
+            <div style="border:1px solid #ccc; padding:15px; margin:10px 0; border-radius:10px;">
+              <h3>${index + 1}. ${item.project || ""}</h3>
+              <p><strong>Company:</strong> ${item.company || ""}</p>
+              <p><strong>Estimated Value:</strong> ${item.value || ""}</p>
+              <p><strong>Location:</strong> ${item.location || ""}</p>
+              <p><strong>Signal Type:</strong> ${item.signal || ""}</p>
+              <p><strong>Why High Probability:</strong> ${item.probability || ""}</p>
+              <p><strong>Suggested Outreach:</strong> ${item.outreach || ""}</p>
+            </div>
+          `;
+        });
+
+        html += `<h3>Strategic Insights Today</h3><ul>`;
+        (data.strategicInsights || []).forEach(i => (html += `<li>${i}</li>`));
+        html += `</ul>`;
+
+        html += `<h3>Improvement Signals</h3><ul>`;
+        (data.improvements || []).forEach(i => (html += `<li>${i}</li>`));
+        html += `</ul>`;
+
+        statusEl.innerText = "DONE ✅";
+        outputEl.innerHTML = html;
+
+      } catch (err) {
+        document.getElementById("status").innerText = "Fetch failed.";
+        document.getElementById("output").innerText = err.message;
       }
-
-      // Render clean report
-      let html = `<h2>DAILY OPPORTUNITY REPORT — ${data.date || ""}</h2>`;
-
-      (data.opportunities || []).forEach((item, index) => {
-        html += `
-          <div style="border:1px solid #ccc; padding:15px; margin:10px 0; border-radius:10px;">
-            <h3>${index + 1}. ${item.project || ""}</h3>
-            <p><strong>Company:</strong> ${item.company || ""}</p>
-            <p><strong>Estimated Value:</strong> ${item.value || ""}</p>
-            <p><strong>Location:</strong> ${item.location || ""}</p>
-            <p><strong>Signal Type:</strong> ${item.signal || ""}</p>
-            <p><strong>Why High Probability:</strong> ${item.probability || ""}</p>
-            <p><strong>Suggested Outreach:</strong> ${item.outreach || ""}</p>
-          </div>
-        `;
-      });
-
-      html += `<h3>Strategic Insights Today</h3><ul>`;
-      (data.strategicInsights || []).forEach(i => html += `<li>${i}</li>`);
-      html += `</ul>`;
-
-      html += `<h3>Improvement Signals</h3><ul>`;
-      (data.improvements || []).forEach(i => html += `<li>${i}</li>`);
-      html += `</ul>`;
-
-      status.innerText = `DONE ✅ HTTP ${res.status}`;
-      output.innerHTML = html;
-
-    } catch (err) {
-      status.innerText = "FAILED ❌";
-      output.innerText = err.message;
     }
-  }
-</script>
+  </script>
+</body>
+</html>
