@@ -21,30 +21,37 @@ Run Intelligence Engine
 <script>
 async function runEngine() {
 
-  const status = document.getElementById("status");
-  const output = document.getElementById("output");
+  const data = await res.json();
 
-  status.innerText = "Sending request...";
-  output.innerText = "";
+let html = `<h2>DAILY OPPORTUNITY REPORT — ${data.date}</h2>`;
 
-  try {
-    const res = await fetch(
-      "https://industrial-gc-intelligence.onrender.com/run-intelligence",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: "Reply with only OK." })
-      }
-    );
+data.opportunities.forEach((item, index) => {
+  html += `
+    <div style="border:1px solid #ccc; padding:15px; margin:10px 0;">
+      <h3>${index + 1}. ${item.project}</h3>
+      <p><strong>Company:</strong> ${item.company}</p>
+      <p><strong>Estimated Value:</strong> ${item.value}</p>
+      <p><strong>Location:</strong> ${item.location}</p>
+      <p><strong>Signal Type:</strong> ${item.signal}</p>
+      <p><strong>Why High Probability:</strong> ${item.probability}</p>
+      <p><strong>Suggested Outreach:</strong> ${item.outreach}</p>
+    </div>
+  `;
+});
 
-    const text = await res.text();
+html += `<h3>Strategic Insights Today</h3><ul>`;
+data.strategicInsights.forEach(i => {
+  html += `<li>${i}</li>`;
+});
+html += `</ul>`;
 
-    status.innerText = "Done. HTTP " + res.status;
-    output.innerText = text;
+html += `<h3>Improvement Signals</h3><ul>`;
+data.improvements.forEach(i => {
+  html += `<li>${i}</li>`;
+});
+html += `</ul>`;
 
-  } catch (err) {
-    status.innerText = "Fetch failed.";
-    output.innerText = err.message;
+output.innerHTML = html;
   }
 }
 </script>
