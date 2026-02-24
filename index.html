@@ -58,20 +58,20 @@
     </div>
   </div>
 </section>
-<body style="font-family: Arial; padding: 20px;">
-
-
-  
-
-  <button onclick="runEngine()" style="padding:12px 16px; font-size:16px;">
+<!-- ✅ Engine UI (place this INSIDE your existing <body> ... </body>) -->
+<div style="padding:20px; max-width: 900px; margin: 0 auto;">
+  <button id="runBtn" style="padding:12px 16px; font-size:16px; cursor:pointer;">
     Run Intelligence Engine
   </button>
 
-  <p id="status"></p>
-  <div id="output" style="background:#f2f2f2; padding:12px; white-space:pre-wrap;"></div>
+  <p id="status" style="margin-top:12px;"></p>
+  <div id="output" style="background:#f2f2f2; padding:12px; white-space:pre-wrap; border-radius:8px;"></div>
+</div>
 
-  <script>
-    <script>
+<script>
+  // ✅ PUT YOUR REAL BACKEND URL HERE (must end with /run-intelligence)
+  const BACKEND_URL = "https://YOUR-RENDER-SERVICE.onrender.com/run-intelligence";
+
   const basePrompt = `
 AUTONOMOUS INDUSTRIAL GC REVENUE INTELLIGENCE ENGINE
 ROLE: You are an autonomous B2B Revenue Intelligence Engine.
@@ -84,111 +84,33 @@ OUTPUT REQUIREMENTS:
 - Ideal Buyer (job titles)
 - Monetization Strategy
 - First 30-Day Action Plan
+  `.trim();
 
-RULES:
-- Only include early-stage, revenue-ready signals
-- No guessing. If unknown, say Not Found.
-- Prioritize Louisiana.
+  async function runEngine() {
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
 
-TARGET AREA:
-{{PARISH}}
-`;
-
-  const btn = document.getElementById('runPromptBtn');
-  const statusMessage = document.getElementById('statusMessage');
-  const reportOutput = document.getElementById('reportOutput');
-  const parishSelect = document.getElementById('parishSelect');
-  const metaLine = document.getElementById('metaLine');
-
-  const saveBtn = document.getElementById('saveBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const emailInput = document.getElementById('emailInput');
-
-  function nowStamp() {
-    const d = new Date();
-    return d.toLocaleString();
-  }
-
-  function buildPrompt() {
-    const parish = parishSelect.value || "Statewide";
-    return basePrompt.replace("{{PARISH}}", parish);
-  }
-
-  function setMeta(text) {
-    metaLine.textContent = text;
-  }
-
-  function getStoredReports() {
-    return JSON.parse(localStorage.getItem("savedReports") || "[]");
-  }
-
-  function setStoredReports(items) {
-    localStorage.setItem("savedReports", JSON.stringify(items));
-  }
-
-  saveBtn.addEventListener('click', () => {
-    const report = reportOutput.textContent.trim();
-    if (!report) {
-      statusMessage.textContent = "Nothing to save yet — run the engine first.";
-      return;
-    }
-    const item = {
-      savedAt: new Date().toISOString(),
-      parish: parishSelect.value,
-      report
-    };
-    const all = [item, ...getStoredReports()].slice(0, 20); // keep last 20
-    setStoredReports(all);
-    statusMessage.textContent = "Saved. (Stored locally on this device)";
-  });
-
-  downloadBtn.addEventListener('click', () => {
-    const report = reportOutput.textContent.trim();
-    if (!report) {
-      statusMessage.textContent = "Nothing to download yet — run the engine first.";
-      return;
-    }
-    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `gc-intel-${parishSelect.value.replace(/\s+/g,'-').toLowerCase()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  });
-
-  btn.addEventListener('click', async () => {
-    statusMessage.textContent = 'Generating report...';
-    reportOutput.textContent = '';
-    const parish = parishSelect.value || "Statewide";
-    setMeta(`Area: ${parish} • Generated: ${nowStamp()}`);
+    statusEl.textContent = "Sending request...";
+    outputEl.textContent = "";
 
     try {
-      const response = await fetch('/.netlify/functions/run-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: buildPrompt() })
+      const res = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: basePrompt })
       });
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-
-      reportOutput.textContent = data.report || 'No output returned.';
-      statusMessage.textContent = 'Report generated successfully!';
-
-      // OPTIONAL: if email provided, call your future email function
-      const email = emailInput.value.trim();
-      if (email) {
-        // Placeholder — you can add a Netlify function later: /.netlify/functions/send-report
-        // await fetch('/.netlify/functions/send-report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, report: data.report, parish }) });
-      }
-    } catch (error) {
-      console.error(error);
-      statusMessage.textContent = 'Error generating report. Check console.';
+      const text = await res.text();
+      statusEl.textContent = `DONE ✅ HTTP ${res.status}`;
+      outputEl.textContent = text;
+    } catch (err) {
+      statusEl.textContent = "Fetch failed.";
+      outputEl.textContent = err.message;
     }
-  });
+  }
+
+  // ✅ safer than onclick=... because it guarantees binding
+  document.getElementById("runBtn").addEventListener("click", runEngine);
 </script>
     
   </script>
