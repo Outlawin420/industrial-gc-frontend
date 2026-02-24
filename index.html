@@ -88,73 +88,126 @@
   <div id="output" style="background:#f2f2f2; padding:12px; white-space:pre-wrap;"></div>
 
   <script>
-    // ✅ STEP 1: Replace this with your real Render URL (must end with /run-intelligence)
-    const BACKEND_URL = "https://industrial-gc-intelligence.onrender.com/run-intelligence";
+    <script>
+  const basePrompt = `
+AUTONOMOUS INDUSTRIAL GC REVENUE INTELLIGENCE ENGINE
+ROLE: You are an autonomous B2B Revenue Intelligence Engine.
+MISSION: Generate daily, pre-bid industrial project signals above $250,000.
 
-    async function runEngine() {
-      const statusEl = document.getElementById("status");
-      const outputEl = document.getElementById("output");
+OUTPUT REQUIREMENTS:
+- Signal Detected
+- Evidence (with links)
+- Opportunity Window
+- Ideal Buyer (job titles)
+- Monetization Strategy
+- First 30-Day Action Plan
 
-      statusEl.innerText = "Generating report...";
-      outputEl.innerHTML = "";
+RULES:
+- Only include early-stage, revenue-ready signals
+- No guessing. If unknown, say Not Found.
+- Prioritize Louisiana.
 
-      try {
-        const res = await fetch(BACKEND_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: "RUN_MOCK" }) // keep this for now
-        });
+TARGET AREA:
+{{PARISH}}
+`;
 
-        const text = await res.text();
+  const btn = document.getElementById('runPromptBtn');
+  const statusMessage = document.getElementById('statusMessage');
+  const reportOutput = document.getElementById('reportOutput');
+  const parishSelect = document.getElementById('parishSelect');
+  const metaLine = document.getElementById('metaLine');
 
-        if (!res.ok) {
-          statusEl.innerText = `DONE ✅ HTTP ${res.status}`;
-          outputEl.innerText = text;
-          return;
-        }
+  const saveBtn = document.getElementById('saveBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const emailInput = document.getElementById('emailInput');
 
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {
-          statusEl.innerText = "DONE ✅ (but response was not JSON)";
-          outputEl.innerText = text;
-          return;
-        }
+  function nowStamp() {
+    const d = new Date();
+    return d.toLocaleString();
+  }
 
-        // Render clean list style output
-        let html = `<h2>DAILY OPPORTUNITY REPORT — ${data.date || ""}</h2>`;
+  function buildPrompt() {
+    const parish = parishSelect.value || "Statewide";
+    return basePrompt.replace("{{PARISH}}", parish);
+  }
 
-        (data.opportunities || []).forEach((item, index) => {
-          html += `
-            <div style="border:1px solid #ccc; padding:15px; margin:10px 0; border-radius:10px;">
-              <h3>${index + 1}. ${item.project || ""}</h3>
-              <p><strong>Company:</strong> ${item.company || ""}</p>
-              <p><strong>Estimated Value:</strong> ${item.value || ""}</p>
-              <p><strong>Location:</strong> ${item.location || ""}</p>
-              <p><strong>Signal Type:</strong> ${item.signal || ""}</p>
-              <p><strong>Why High Probability:</strong> ${item.probability || ""}</p>
-              <p><strong>Suggested Outreach:</strong> ${item.outreach || ""}</p>
-            </div>
-          `;
-        });
+  function setMeta(text) {
+    metaLine.textContent = text;
+  }
 
-        html += `<h3>Strategic Insights Today</h3><ul>`;
-        (data.strategicInsights || []).forEach(i => (html += `<li>${i}</li>`));
-        html += `</ul>`;
+  function getStoredReports() {
+    return JSON.parse(localStorage.getItem("savedReports") || "[]");
+  }
 
-        html += `<h3>Improvement Signals</h3><ul>`;
-        (data.improvements || []).forEach(i => (html += `<li>${i}</li>`));
-        html += `</ul>`;
+  function setStoredReports(items) {
+    localStorage.setItem("savedReports", JSON.stringify(items));
+  }
 
-        statusEl.innerText = "DONE ✅";
-        outputEl.innerHTML = html;
-
-      } catch (err) {
-        document.getElementById("status").innerText = "Fetch failed.";
-        document.getElementById("output").innerText = err.message;
-      }
+  saveBtn.addEventListener('click', () => {
+    const report = reportOutput.textContent.trim();
+    if (!report) {
+      statusMessage.textContent = "Nothing to save yet — run the engine first.";
+      return;
     }
+    const item = {
+      savedAt: new Date().toISOString(),
+      parish: parishSelect.value,
+      report
+    };
+    const all = [item, ...getStoredReports()].slice(0, 20); // keep last 20
+    setStoredReports(all);
+    statusMessage.textContent = "Saved. (Stored locally on this device)";
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    const report = reportOutput.textContent.trim();
+    if (!report) {
+      statusMessage.textContent = "Nothing to download yet — run the engine first.";
+      return;
+    }
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gc-intel-${parishSelect.value.replace(/\s+/g,'-').toLowerCase()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  btn.addEventListener('click', async () => {
+    statusMessage.textContent = 'Generating report...';
+    reportOutput.textContent = '';
+    const parish = parishSelect.value || "Statewide";
+    setMeta(`Area: ${parish} • Generated: ${nowStamp()}`);
+
+    try {
+      const response = await fetch('/.netlify/functions/run-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: buildPrompt() })
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      reportOutput.textContent = data.report || 'No output returned.';
+      statusMessage.textContent = 'Report generated successfully!';
+
+      // OPTIONAL: if email provided, call your future email function
+      const email = emailInput.value.trim();
+      if (email) {
+        // Placeholder — you can add a Netlify function later: /.netlify/functions/send-report
+        // await fetch('/.netlify/functions/send-report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, report: data.report, parish }) });
+      }
+    } catch (error) {
+      console.error(error);
+      statusMessage.textContent = 'Error generating report. Check console.';
+    }
+  });
+</script>
+    
   </script>
 </body>
 </html>
