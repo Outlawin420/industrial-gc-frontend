@@ -250,82 +250,96 @@
   .mono{font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12px;
     background: rgba(255,255,255,.04); border:1px solid var(--line); border-radius:12px; padding:10px; white-space:pre-wrap;}
   .small-muted{color:var(--muted); font-size:12px;}
-</style>
-<script>
-  
-</script>
-    <script>
-  const BACKEND_URL = "https://industrial-gc-intelligence.onrender.com/run-intelligence";
-
-  function escapeHtml(str="") {
-    return String(str)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;")
-      .replaceAll(">","&gt;").replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+</style>="display:grid; gap:12px;">${opsHtml}</div>
+</div>
+;
   }
+ function renderReport(data){
+  const date = data?.date ? escapeHtml(data.date) : new Date().toLocaleString();
+  const ops = Array.isArray(data?.opportunities) ? data.opportunities : [];
+  const insights = Array.isArray(data?.strategicInsights) ? data.strategicInsights : [];
+  const improvements = Array.isArray(data?.improvements) ? data.improvements : [];
 
-  function listBlock(title, items){
-    const safe = Array.isArray(items) ? items : [];
-    return `
-      <div class="card">
-        <h3>${escapeHtml(title)}</h3>
-        ${safe.length
-          ? `<ul class="list">${safe.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
-          : `<div class="small-muted">None returned.</div>`
-        }
-      </div>
-    `;
-  }
+  // Executive summary (short + clean)
+  const top3 = ops.slice(0, 3);
 
-  function renderReport(data){
-    const date = data?.date ? escapeHtml(data.date) : new Date().toLocaleString();
-    const ops = Array.isArray(data?.opportunities) ? data.opportunities : [];
-
-    const opsHtml = ops.length
-      ? ops.map((item, i) => `
-        <div class="opportunity">
-          <div class="opportunity-head">
-            <div>
-              <h4>${i+1}. ${escapeHtml(item.project || "Untitled Opportunity")}
-                ${item.signal ? `<span class="pill">${escapeHtml(item.signal)}</span>` : ``}
-              </h4>
-              <div class="small-muted">
-                <strong style="color:var(--text)">${escapeHtml(item.company || "Unknown Company")}</strong>
-                ${item.location ? ` • ${escapeHtml(item.location)}` : ``}
-                ${item.value ? ` • Est. Value: <strong style="color:var(--text)">${escapeHtml(item.value)}</strong>` : ``}
-              </div>
+  const top3Html = top3.length
+    ? top3.map((item, i) => `
+      <div class="opportunity" style="padding:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div>
+            <h4 style="margin:0; font-size:16px; font-weight:800;">
+              ${i+1}. ${escapeHtml(item.project || "Untitled Opportunity")}
+            </h4>
+            <div class="small-muted" style="margin-top:6px; font-size:13px;">
+              <strong style="color:var(--text)">${escapeHtml(item.company || "Unknown Company")}</strong>
+              ${item.location ? ` • ${escapeHtml(item.location)}` : ``}
+              ${item.value ? ` • <strong style="color:var(--text)">${escapeHtml(item.value)}</strong>` : ``}
             </div>
           </div>
-
-          <div class="kv">
-            <div class="k">Why high probability</div><div class="v">${escapeHtml(item.probability || "—")}</div>
-            <div class="k">Suggested outreach</div><div class="v">${escapeHtml(item.outreach || "—")}</div>
-          </div>
+          ${item.signal ? `<span class="pill">${escapeHtml(item.signal)}</span>` : ``}
         </div>
-      `).join("")
-      : `<div class="small-muted">No opportunities returned.</div>`;
 
-    return `
-      <div class="report-header">
-        <div>
-          <p class="report-title">Daily Opportunity Report</p>
-          <p class="report-sub">${date}</p>
+        <div class="divider" style="margin:12px 0;"></div>
+
+        <div class="kv" style="grid-template-columns:160px 1fr;">
+          <div class="k">Probability signal</div><div class="v">${escapeHtml(item.probability || "—")}</div>
+          <div class="k">Recommended outreach</div><div class="v">${escapeHtml(item.outreach || "—")}</div>
         </div>
-        <div class="badge"><span class="dot"></span> Report Ready</div>
+      </div>
+    `).join("")
+    : `<div class="small-muted">No opportunities returned.</div>`;
+
+  const insightsHtml = insights.length
+    ? `<ul class="list">${insights.slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+    : `<div class="small-muted">None returned.</div>`;
+
+  const improvementsHtml = improvements.length
+    ? `<ul class="list">${improvements.slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+    : `<div class="small-muted">None returned.</div>`;
+
+  return `
+    <div class="report-header">
+      <div>
+        <p class="report-title" style="font-size:22px; font-weight:900; margin:0;">
+          Executive Opportunity Brief
+        </p>
+        <p class="report-sub" style="margin-top:8px;">${date}</p>
+      </div>
+      <div class="badge"><span class="dot"></span> Complete</div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr; gap:12px;">
+      <div class="card">
+        <h3 style="font-size:14px; margin-bottom:8px;">Snapshot</h3>
+        <div class="kv" style="grid-template-columns:190px 1fr;">
+          <div class="k">Opportunities returned</div><div class="v">${ops.length}</div>
+          <div class="k">Top opportunities shown</div><div class="v">${Math.min(3, ops.length)}</div>
+        </div>
       </div>
 
       <div class="grid">
-        ${listBlock("Strategic Insights", data?.strategicInsights)}
-        ${listBlock("Improvement Signals", data?.improvements)}
+        <div class="card">
+          <h3>Strategic Insights</h3>
+          ${insightsHtml}
+        </div>
+        <div class="card">
+          <h3>Improvement Signals</h3>
+          ${improvementsHtml}
+        </div>
       </div>
+    </div>
 
-      <div class="divider"></div>
+    <div class="divider"></div>
 
-      <div class="card">
-        <h3>Opportunities</h3>
-        <div style="display:grid; gap:12px;">${opsHtml}</div>
-      </div>
-    `;
+    <div class="card">
+      <h3 style="font-size:14px; margin-bottom:10px;">Top 3 Opportunities</h3>
+      <div style="display:grid; gap:12px;">${top3Html}</div>
+      ${ops.length > 3 ? `<div class="small-muted" style="margin-top:10px;">Showing top 3 of ${ops.length}.</div>` : ``}
+    </div>
+  `;
+}
+ 
   }
 
   async function runEngine(){
@@ -359,7 +373,7 @@
       outputEl.innerHTML = `<div class="card"><h3>Error</h3><div class="mono">${escapeHtml(err.message || String(err))}</div></div>`;
     }
   }
-    </script>
+    
   </script>
 </body>
 </html>
