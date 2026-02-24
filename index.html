@@ -252,50 +252,114 @@
   .small-muted{color:var(--muted); font-size:12px;}
 </style>
 <script>
-  // ✅ PUT YOUR REAL BACKEND URL HERE (must end with /run-intelligence)
+  
+</script>
+    <script>
   const BACKEND_URL = "https://industrial-gc-intelligence.onrender.com/run-intelligence";
 
-  const basePrompt = `
-AUTONOMOUS INDUSTRIAL GC REVENUE INTELLIGENCE ENGINE
-ROLE: You are an autonomous B2B Revenue Intelligence Engine.
-MISSION: Generate daily, pre-bid industrial project signals above $250,000.
+  function escapeHtml(str="") {
+    return String(str)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;")
+      .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
-OUTPUT REQUIREMENTS:
-- Signal Detected
-- Evidence (with links)
-- Opportunity Window
-- Ideal Buyer (job titles)
-- Monetization Strategy
-- First 30-Day Action Plan
-  `.trim();
+  function listBlock(title, items){
+    const safe = Array.isArray(items) ? items : [];
+    return `
+      <div class="card">
+        <h3>${escapeHtml(title)}</h3>
+        ${safe.length
+          ? `<ul class="list">${safe.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+          : `<div class="small-muted">None returned.</div>`
+        }
+      </div>
+    `;
+  }
 
-  async function runEngine() {
+  function renderReport(data){
+    const date = data?.date ? escapeHtml(data.date) : new Date().toLocaleString();
+    const ops = Array.isArray(data?.opportunities) ? data.opportunities : [];
+
+    const opsHtml = ops.length
+      ? ops.map((item, i) => `
+        <div class="opportunity">
+          <div class="opportunity-head">
+            <div>
+              <h4>${i+1}. ${escapeHtml(item.project || "Untitled Opportunity")}
+                ${item.signal ? `<span class="pill">${escapeHtml(item.signal)}</span>` : ``}
+              </h4>
+              <div class="small-muted">
+                <strong style="color:var(--text)">${escapeHtml(item.company || "Unknown Company")}</strong>
+                ${item.location ? ` • ${escapeHtml(item.location)}` : ``}
+                ${item.value ? ` • Est. Value: <strong style="color:var(--text)">${escapeHtml(item.value)}</strong>` : ``}
+              </div>
+            </div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Why high probability</div><div class="v">${escapeHtml(item.probability || "—")}</div>
+            <div class="k">Suggested outreach</div><div class="v">${escapeHtml(item.outreach || "—")}</div>
+          </div>
+        </div>
+      `).join("")
+      : `<div class="small-muted">No opportunities returned.</div>`;
+
+    return `
+      <div class="report-header">
+        <div>
+          <p class="report-title">Daily Opportunity Report</p>
+          <p class="report-sub">${date}</p>
+        </div>
+        <div class="badge"><span class="dot"></span> Report Ready</div>
+      </div>
+
+      <div class="grid">
+        ${listBlock("Strategic Insights", data?.strategicInsights)}
+        ${listBlock("Improvement Signals", data?.improvements)}
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card">
+        <h3>Opportunities</h3>
+        <div style="display:grid; gap:12px;">${opsHtml}</div>
+      </div>
+    `;
+  }
+
+  async function runEngine(){
     const statusEl = document.getElementById("status");
     const outputEl = document.getElementById("output");
 
-    statusEl.textContent = "Sending request...";
-    outputEl.textContent = "";
+    statusEl.textContent = "Generating report…";
+    outputEl.innerHTML = "";
 
     try {
       const res = await fetch(BACKEND_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: basePrompt })
+        body: JSON.stringify({ prompt: "RUN_MOCK" })  // change later if needed
       });
 
       const text = await res.text();
       statusEl.textContent = `DONE ✅ HTTP ${res.status}`;
-      outputEl.textContent = text;
+
+      // Try to parse JSON and render pretty report
+      try {
+        const data = JSON.parse(text);
+        outputEl.innerHTML = renderReport(data);
+      } catch {
+        // Not JSON (or bad JSON) — show raw safely
+        outputEl.innerHTML = `<div class="card"><h3>Server Response</h3><div class="mono">${escapeHtml(text)}</div></div>`;
+      }
+
     } catch (err) {
       statusEl.textContent = "Fetch failed.";
-      outputEl.textContent = err.message;
+      outputEl.innerHTML = `<div class="card"><h3>Error</h3><div class="mono">${escapeHtml(err.message || String(err))}</div></div>`;
     }
   }
-
-  // ✅ safer than onclick=... because it guarantees binding
-  document.getElementById("runBtn").addEventListener("click", runEngine);
-</script>
-    
+    </script>
   </script>
 </body>
 </html>
