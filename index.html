@@ -218,7 +218,39 @@
   <p id="status" style="margin-top:12px;"></p>
   <div <div id="output" class="report-shell"></div>
 </div>
-
+<style>
+  :root{
+    --bg:#0b1220; --card:#101a2e; --muted:#94a3b8; --text:#e7ecf7;
+    --line:rgba(255,255,255,.10); --accent:#5aa2ff; --good:#22c55e; --warn:#f59e0b;
+  }
+  .report-shell{
+    margin-top:16px; padding:18px; border:1px solid var(--line); border-radius:14px;
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  }
+  .report-header{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px;}
+  .report-title{font-size:18px; font-weight:800; margin:0;}
+  .report-sub{margin:6px 0 0; color:var(--muted); font-size:13px;}
+  .badge{display:inline-flex; align-items:center; gap:8px; padding:7px 10px; border-radius:999px; font-size:12px;
+    border:1px solid var(--line); background: rgba(255,255,255,.03); white-space:nowrap;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--good);}
+  .grid{display:grid; grid-template-columns:1fr; gap:12px;}
+  @media(min-width:900px){ .grid{grid-template-columns:1fr 1fr;} }
+  .card{border:1px solid var(--line); border-radius:14px; background: rgba(255,255,255,.02); padding:14px;}
+  .card h3{margin:0 0 10px; font-size:14px; letter-spacing:.2px;}
+  .opportunity{border:1px solid var(--line); border-radius:14px; background: rgba(255,255,255,.02); padding:12px;}
+  .opportunity-head{display:flex; justify-content:space-between; gap:10px; margin-bottom:10px;}
+  .opportunity h4{margin:0; font-size:14px;}
+  .pill{display:inline-block; padding:4px 8px; border-radius:999px; border:1px solid var(--line);
+    background: rgba(90,162,255,.12); color:#cfe3ff; font-size:12px; margin-left:8px;}
+  .kv{display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:13px;}
+  .k{color:var(--muted);} .v{color:var(--text);}
+  .list{margin:0; padding-left:18px; font-size:13px; line-height:1.5;}
+  .list li{margin:6px 0;}
+  .divider{height:1px; background:var(--line); margin:14px 0;}
+  .mono{font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12px;
+    background: rgba(255,255,255,.04); border:1px solid var(--line); border-radius:12px; padding:10px; white-space:pre-wrap;}
+  .small-muted{color:var(--muted); font-size:12px;}
+</style>
 <script>
   // ✅ PUT YOUR REAL BACKEND URL HERE (must end with /run-intelligence)
   const BACKEND_URL = "https://industrial-gc-intelligence.onrender.com/run-intelligence";
