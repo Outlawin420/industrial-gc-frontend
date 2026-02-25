@@ -1,139 +1,362 @@
-  .opportunity h4{margin:0; font-size:1;}
-  .pill{display:inline-block; padding:4 8; border-radius:999; border:1 solid (--line);
-    background: (90,162,255,.12); color:#cfe3ff; font-size:12; margin-left:8;}
-  .kv{display:grid; grid-template-columns:140 1; gap:6 12; font-size:13;}
-  .k{color:(--muted);} .v{color:(--text);}
-  .list{margin:0; padding-left:18; font-size:13; line-height:1.5;}
-  .list li{margin:6 0;}
-  .divider{height:1; background:(--line); margin:14 0;}
-  .mono{font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12;
-    background: (255,255,255,.04); border:1 solid (--line); border-radius:12; padding:10; white-space:pre-wrap;}
-  .small-muted{color:(--muted); font-size:12;}
-</style>="display:grid; gap:12px;">${opsHtml}</div>
-</div>
-;
-  }
- function renderReport(data){
-  const date = data?.date ? escapeHtml(data.date) : new Date().toLocaleString();
-  const ops = Array.isArray(data?.opportunities) ? data.opportunities : [];
-  const insights = Array.isArray(data?.strategicInsights) ? data.strategicInsights : [];
-  const improvements = Array.isArray(data?.improvements) ? data.improvements : [];
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Industrial GC Intelligence Portal</title>
 
-  // Executive summary (short + clean)
-  const top3 = ops.slice(0, 3);
+  <style>
+    :root{
+      --bg:#070b14;
+      --panel:#0b1220;
+      --card:#0f1a2e;
+      --line:rgba(255,255,255,.10);
+      --text:#e6eefc;
+      --muted:rgba(230,238,252,.70);
+      --accent:#5aa2ff;
+      --accent2:#2ee59d;
+      --danger:#ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+      --radius2:12px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue";
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(90,162,255,.18), transparent 60%),
+                  radial-gradient(1200px 700px at 80% 0%, rgba(46,229,157,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{ max-width:1100px; margin:0 auto; padding:28px 18px 48px; }
+    .top{
+      display:flex; gap:16px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+      padding:22px 22px; border:1px solid var(--line); background:rgba(11,18,32,.75);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+    .brand h1{ margin:0; font-size:34px; letter-spacing:.2px; }
+    .brand p{ margin:8px 0 0; color:var(--muted); max-width:60ch; line-height:1.4; }
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button{
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(90,162,255,.20), rgba(90,162,255,.08));
+      color:var(--text);
+      padding:12px 14px;
+      border-radius: 12px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,.25);
+    }
+    button:hover{ border-color:rgba(90,162,255,.45); }
+    button:disabled{
+      opacity:.6; cursor:not-allowed;
+    }
+    .btn-secondary{
+      background: rgba(255,255,255,.04);
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+      margin-top:16px;
+    }
+    @media (max-width: 900px){
+      .row{ grid-template-columns: 1fr; }
+    }
+    .panel{
+      border:1px solid var(--line);
+      background: rgba(11,18,32,.65);
+      border-radius: var(--radius);
+      padding:18px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2{ margin:0 0 10px; font-size:16px; letter-spacing:.2px; }
+    .muted{ color:var(--muted); }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      padding:8px 10px; border-radius: 999px;
+      font-size:12px; color:var(--muted);
+    }
+    .dot{ width:8px; height:8px; border-radius:999px; background:rgba(255,255,255,.25); }
+    .dot.ok{ background: var(--accent2); }
+    .dot.bad{ background: var(--danger); }
+    .divider{ height:1px; background:var(--line); margin:14px 0; }
 
-  const top3Html = top3.length
-    ? top3.map((item, i) => `
-      <div class="opportunity" style="padding:14;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12;">
-          <div>
-            <h4 style="margin:0; font-size:16; font-weight:800;">
-              ${i+1}. ${escapeHtml(item.project || "Untitled Opportunity")}
-            </h4>
-            <div class="small-muted" style="margin-top:6; font-size:13;">
-              <strong style="color:(--text)">${escapeHtml(item.company || "Unknown Company")}</strong>
-              ${item.location ? ` • ${escapeHtml(item.location)}` : ``}
-              ${item.value ? ` • <strong style="color:(--text)">${escapeHtml(item.value)}</strong>` : ``}
+    .output{
+      margin-top:16px;
+      border:1px solid var(--line);
+      background: rgba(11,18,32,.65);
+      border-radius: var(--radius);
+      padding:18px;
+      box-shadow: var(--shadow);
+      min-height: 140px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:12px;
+      margin-top:12px;
+    }
+    .card{
+      grid-column: span 12;
+      background: rgba(15,26,46,.80);
+      border:1px solid var(--line);
+      border-radius: var(--radius2);
+      padding:14px;
+    }
+    .card h3{ margin:0 0 10px; font-size:14px; letter-spacing:.2px; }
+    .kv{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap:8px 12px;
+      font-size:13px;
+      line-height:1.35;
+    }
+    .k{ color:var(--muted); }
+    .pill{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(90,162,255,.10);
+      color: rgba(230,238,252,.95);
+      font-size:12px;
+      margin-left:8px;
+    }
+    .list{ margin:10px 0 0; padding-left:18px; color: rgba(230,238,252,.92); }
+    .list li{ margin:6px 0; }
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
+      font-size:12px;
+      white-space: pre-wrap;
+      background: rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding:12px;
+      color: rgba(230,238,252,.92);
+      overflow:auto;
+    }
+    a{ color: var(--accent); }
+    .footer{
+      margin-top:14px;
+      color: var(--muted);
+      font-size:12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1>Industrial GC Intelligence Portal</h1>
+        <p>Early project signals for industrial contractors — designed to surface high-probability opportunities and the next best outreach steps.</p>
+      </div>
+
+      <div class="actions">
+        <button id="runBtn" onclick="runEngine()">Run Intelligence Engine</button>
+        <button class="btn-secondary" onclick="clearOutput()">Clear</button>
+        <span class="chip" id="statusChip"><span class="dot" id="statusDot"></span><span id="statusText">Idle</span></span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="panel">
+        <h2>Input</h2>
+        <div class="muted">For now this runs a default “daily report” request. You can add a prompt box later if you want.</div>
+        <div class="divider"></div>
+        <div class="muted"><strong>Backend:</strong> <span id="backendUrlText"></span></div>
+      </div>
+
+      <div class="panel">
+        <h2>How it works</h2>
+        <ul class="list">
+          <li>Click <strong>Run</strong></li>
+          <li>Frontend sends a POST to your Render backend</li>
+          <li>Backend returns JSON report</li>
+          <li>This page renders it into a clean brief</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="output" id="output">
+      <div class="muted">Output will appear here.</div>
+    </div>
+
+    <div class="footer">
+      Tip: if you get “HTTP 500”, open your Render logs — the error message will show why the backend failed.
+    </div>
+  </div>
+
+  <script>
+    // ✅ Set your real backend endpoint here
+    const BACKEND_URL = "https://industrial-gc-intelligence.onrender.com/run-intelligence";
+    document.getElementById("backendUrlText").textContent = BACKEND_URL;
+
+    function setStatus(state, text){
+      const dot = document.getElementById("statusDot");
+      const t = document.getElementById("statusText");
+      t.textContent = text;
+
+      dot.classList.remove("ok","bad");
+      if(state === "ok") dot.classList.add("ok");
+      if(state === "bad") dot.classList.add("bad");
+    }
+
+    function clearOutput(){
+      document.getElementById("output").innerHTML = `<div class="muted">Output cleared.</div>`;
+      setStatus("", "Idle");
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function renderReport(data){
+      const date = data?.date ? escapeHtml(data.date) : escapeHtml(new Date().toLocaleDateString());
+      const ops = Array.isArray(data?.opportunities) ? data.opportunities : [];
+      const insights = Array.isArray(data?.strategicInsights) ? data.strategicInsights : [];
+      const improvements = Array.isArray(data?.improvements) ? data.improvements : [];
+
+      const top3 = ops.slice(0, 3);
+
+      const topHtml = top3.length ? top3.map((item, i) => {
+        const project = escapeHtml(item.project || "Untitled Opportunity");
+        const company = escapeHtml(item.company || "Unknown Company");
+        const value = escapeHtml(item.value || "—");
+        const location = escapeHtml(item.location || "—");
+        const signal = escapeHtml(item.signal || "—");
+        const probability = escapeHtml(item.probability || "—");
+        const outreach = escapeHtml(item.outreach || "—");
+
+        return `
+          <div class="card">
+            <h3>${i+1}. ${project}<span class="pill">${signal}</span></h3>
+            <div class="kv">
+              <div class="k">Company</div><div>${company}</div>
+              <div class="k">Estimated Value</div><div>${value}</div>
+              <div class="k">Location</div><div>${location}</div>
+              <div class="k">Probability Signal</div><div>${probability}</div>
+              <div class="k">Recommended Outreach</div><div>${outreach}</div>
             </div>
           </div>
-          ${item.signal ? `<span class="pill">${escapeHtml(item.signal)}</span>` : ``}
-        </div>
+        `;
+      }).join("") : `<div class="muted">No opportunities returned.</div>`;
 
-        <div class="divider" style="margin:12 0;"></div>
+      const insightsHtml = insights.length
+        ? `<ul class="list">${insights.slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+        : `<div class="muted">None returned.</div>`;
 
-        <div class="kv" style="grid-template-columns:160 1;">
-          <div class="k">Probability signal</div><div class="v">${escapeHtml(item.probability || "—")}</div>
-          <div class="k">Recommended outreach</div><div class="v">${escapeHtml(item.outreach || "—")}</div>
-        </div>
-      </div>
-    `).join("")
-    : `<div class="small-muted">No opportunities returned.</div>`;
+      const improvementsHtml = improvements.length
+        ? `<ul class="list">${improvements.slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+        : `<div class="muted">None returned.</div>`;
 
-  const insightsHtml = insights.length
-    ? `<ul class="list">${insights.slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
-    : `<div class="small-muted">None returned.</div>`;
-
-  const improvementsHtml = improvements.length
-    ? `<ul class="list">${improvements.slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
-    : `<div class="small-muted">None returned.</div>`;
-
-  return `
-    <div class="report-header">
-      <div>
-        <p class="report-title" style="font-size:22; font-weight:900; margin:0;">
-          Executive Opportunity Brief
-        </p>
-        <p class="report-sub" style="margin-top:8;">${date}</p>
-      </div>
-      <div class="badge"><span class="dot"></span> Complete</div>
-    </div>
-
-    <div class="grid" style="grid-template-columns:1; gap:12;">
-      <div class="card">
-        <h3 style="font-size:14; margin-bottom:8;">Snapshot</h3>
-        <div class="kv" style="grid-template-columns:190 1;">
-          <div class="k">Opportunities returned</div><div class="v">${ops.length}</div>
-          <div class="k">Top opportunities shown</div><div class="v">${Math.min(3, ops.length)}</div>
-        </div>
-      </div>
-
-      <div class="grid">
+      return `
         <div class="card">
-          <h3>Strategic Insights</h3>
-          ${insightsHtml}
+          <h3>Executive Opportunity Brief</h3>
+          <div class="muted">Date: <strong>${date}</strong></div>
+          <div class="divider"></div>
+          <div class="kv">
+            <div class="k">Opportunities Returned</div><div><strong>${ops.length}</strong></div>
+            <div class="k">Top Opportunities Shown</div><div><strong>${Math.min(3, ops.length)}</strong></div>
+          </div>
         </div>
-        <div class="card">
-          <h3>Improvement Signals</h3>
-          ${improvementsHtml}
+
+        <div class="grid">
+          <div class="card" style="grid-column: span 12;">
+            <h3>Strategic Insights</h3>
+            ${insightsHtml}
+          </div>
+
+          <div class="card" style="grid-column: span 12;">
+            <h3>Improvement Signals</h3>
+            ${improvementsHtml}
+          </div>
+
+          <div class="card" style="grid-column: span 12;">
+            <h3>Top 3 Opportunities</h3>
+            <div style="display:grid; gap:12px; margin-top:10px;">
+              ${topHtml}
+            </div>
+            ${ops.length > 3 ? `<div class="muted" style="margin-top:10px;">Showing top 3 of ${ops.length}.</div>` : ``}
+          </div>
         </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="card">
-      <h3 style="font-size:14; margin-bottom:10;">Top 3 Opportunities</h3>
-      <div style="display:grid; gap:12;">${top3Html}</div>
-      ${ops.length > 3 ? `<div class="small-muted" style="margin-top:10;">Showing top 3 of ${ops.length}.</div>` : ``}
-    </div>
-  `;
-}
-}
- 
-  }
-
-  async function runEngine(){
-    const statusEl = document.getElementById("status");
-    const outputEl = document.getElementById("output");
-
-    statusEl.textContent = "Generating report…";
-    outputEl.innerHTML = "";
-
-    try {
-      const res = await fetch(BACKEND_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: "RUN_MOCK" })  // change later if needed
-      });
-
-      const text = await res.text();
-      statusEl.textContent = `DONE ✅ HTTP ${res.status}`;
-
-      // Try to parse JSON and render pretty report
-      try {
-        const data = JSON.parse(text);
-        outputEl.innerHTML = renderReport(data);
-      } catch {
-        // Not JSON (or bad JSON) — show raw safely
-        outputEl.innerHTML = `<div class="card"><h3>Server Response</h3><div class="mono">${escapeHtml(text)}</div></div>`;
-      }
-
-    } catch (err) {
-      statusEl.textContent = "Fetch failed.";
-      outputEl.innerHTML = `<div class="card"><h3>Error</h3><div class="mono">${escapeHtml(err.message || String(err))}</div></div>`;
+      `;
     }
-  }
-    
+
+    async function runEngine(){
+      const runBtn = document.getElementById("runBtn");
+      const output = document.getElementById("output");
+
+      runBtn.disabled = true;
+      setStatus("", "Running...");
+      output.innerHTML = `<div class="muted">Generating report…</div>`;
+
+      try{
+        const res = await fetch(BACKEND_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            // If your backend supports mock, you can use: "RUN_MOCK"
+            // Otherwise send a simple request string:
+            prompt: "RUN_MOCK"
+          })
+        });
+
+        const text = await res.text();
+
+        if(!res.ok){
+          setStatus("bad", `HTTP ${res.status}`);
+          output.innerHTML = `
+            <div class="card">
+              <h3>Server Error</h3>
+              <div class="mono">${escapeHtml(text)}</div>
+              <div class="muted" style="margin-top:10px;">Check Render logs for the detailed stack trace.</div>
+            </div>
+          `;
+          return;
+        }
+
+        // Try JSON parse, else show raw
+        let data;
+        try{
+          data = JSON.parse(text);
+        }catch{
+          setStatus("ok", `HTTP ${res.status} (non-JSON)`);
+          output.innerHTML = `
+            <div class="card">
+              <h3>Server Response</h3>
+              <div class="mono">${escapeHtml(text)}</div>
+            </div>
+          `;
+          return;
+        }
+
+        setStatus("ok", `HTTP ${res.status}`);
+        output.innerHTML = renderReport(data);
+
+      }catch(err){
+        setStatus("bad", "Fetch failed");
+        output.innerHTML = `
+          <div class="card">
+            <h3>Network Error</h3>
+            <div class="mono">${escapeHtml(err?.message || String(err))}</div>
+          </div>
+        `;
+      }finally{
+        runBtn.disabled = false;
+      }
+    }
   </script>
 </body>
 </html>
